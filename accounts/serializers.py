@@ -10,6 +10,8 @@ __all__ = [
     "LoginSerializer",
     "ResendActivationCodeSerializer",
     "AcountActivationSerializer",
+    "SendRecoveryCodeSerializer",
+    "UpdatePasswordSerializer",
 ]
 
 
@@ -28,8 +30,8 @@ class UserSerializer(ModelSerializer):
         password2 = data.get("password2")
         email = data.get("email")
         user = User(email=email, password=password1)
-
         errors = dict()
+
         try:
             password_validation.validate_password(password=password1, user=user)
         except exceptions.ValidationError as e:
@@ -64,15 +66,12 @@ class LoginSerializer(serializers.Serializer):
         password = data.get("password")
 
         if email and password:
-            user = authenticate(
+            user: User = authenticate(
                 request=self.context.get("request"),
                 email=email,
                 password=password,
             )
 
-            # The authenticate call simply returns None for is_active=False
-            # users. (Assuming the default ModelBackend authentication
-            # backend.)
             if not user:
                 msg = "Unable to log in with provided credentials."
                 raise serializers.ValidationError(msg, code="authorization")
@@ -91,3 +90,38 @@ class ResendActivationCodeSerializer(Serializer):
 class AcountActivationSerializer(Serializer):
     email = serializers.EmailField(max_length=254)
     activation_code = serializers.CharField(max_length=6)
+
+
+class SendRecoveryCodeSerializer(Serializer):
+    email = serializers.EmailField(max_length=254)
+
+
+class UpdatePasswordSerializer(Serializer):
+    user = serializers.ModelField(model_field=User()._meta.get_field("id"))
+    password = serializers.CharField(max_length=128, write_only=True)
+    password2 = serializers.CharField(max_length=128, write_only=True)
+    email = serializers.EmailField(max_length=254, required=False)
+    recovery_code = serializers.CharField(max_length=6, required=False)
+
+    def validate(self, data):
+        user = data.get("user")
+        print(user)
+        email = data.get("email", None)
+        recovery_code = data.get("recovery_code", None)
+        password1 = data.get("password")
+        password2 = data.get("password2")
+        errors = dict()
+
+        if user is None:
+            if email is None:
+                errors.setdefault("email", []).append("This field is required.")
+            if recovery_code is None:
+                errors.setdefault("recovery_code", []).append("This field is required.")
+
+        if password1 != password2:
+            errors.setdefault("password", []).append("Passwords must match.")
+
+        if errors:
+            raise ValidationError(errors)
+
+        return super(UpdatePasswordSerializer, self).validate(data)

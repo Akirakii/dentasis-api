@@ -17,4 +17,14 @@ urlpatterns = [
         views.AccountActivationView.as_view(),
         name="activate-account",
     ),
+    path(
+        "send-recovery-code/",
+        views.SendRecoveryCodeView.as_view(),
+        name="send-recovery-code",
+    ),
+    path(
+        "update-password/",
+        views.UpdatePasswordView.as_view(),
+        name="update-password",
+    ),
 ]

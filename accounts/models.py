@@ -5,6 +5,7 @@ from django.utils import timezone
 __all__ = [
     "User",
     "UserActivationCode",
+    "UserRecoveryCode",
 ]
 
 
@@ -41,10 +42,21 @@ class User(AbstractBaseUser):
 
 class UserActivationCode(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
-    activation_code = models.CharField(max_length=6)
+    activation_code = models.CharField(max_length=128)
     expire_date = models.DateTimeField(
         default=timezone.now() + timezone.timedelta(days=1)
     )
 
     class Meta:
         db_table = "accounts_user_activation_code"
+
+
+class UserRecoveryCode(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    recovery_code = models.CharField(max_length=128)
+    expire_date = models.DateTimeField(
+        default=timezone.now() + timezone.timedelta(hours=1)
+    )
+
+    class Meta:
+        db_table = "accounts_user_recovery_code"
