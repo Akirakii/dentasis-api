@@ -52,7 +52,7 @@ class UserSerializer(ModelSerializer):
         return user
 
 
-class LoginSerializer(serializers.Serializer):
+class LoginSerializer(Serializer):
     email = serializers.EmailField(max_length=254, write_only=True)
     password = serializers.CharField(
         style={"input_type": "password"},
@@ -97,7 +97,7 @@ class SendRecoveryCodeSerializer(Serializer):
 
 
 class UpdatePasswordSerializer(Serializer):
-    user = serializers.ModelField(model_field=User()._meta.get_field("id"))
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     password = serializers.CharField(max_length=128, write_only=True)
     password2 = serializers.CharField(max_length=128, write_only=True)
     email = serializers.EmailField(max_length=254, required=False)
@@ -105,14 +105,13 @@ class UpdatePasswordSerializer(Serializer):
 
     def validate(self, data):
         user = data.get("user")
-        print(user)
         email = data.get("email", None)
         recovery_code = data.get("recovery_code", None)
         password1 = data.get("password")
         password2 = data.get("password2")
         errors = dict()
 
-        if user is None:
+        if user.id is None:
             if email is None:
                 errors.setdefault("email", []).append("This field is required.")
             if recovery_code is None:

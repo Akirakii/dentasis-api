@@ -212,8 +212,9 @@ class UpdatePasswordView(GenericAPIView):
         """
         Updates password
         """
-        print({**request.data, "user": request.user})
-        serializer = self.serializer_class(data={**request.data, "user": request.user.id})
+        serializer = self.serializer_class(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             user: User = serializer.validated_data["user"]
             new_password = serializer.validated_data["password"]
