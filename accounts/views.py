@@ -20,14 +20,14 @@ from accounts.serializers import (
 
 
 class RegisterView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
 
     def post(self, request):
         """
         Register a new User.
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user: User = serializer.save()
             try:
@@ -41,6 +41,8 @@ class RegisterView(GenericAPIView):
 
 
 class AuthenticatedUser(GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         """
         Retrieve the logged user
@@ -50,7 +52,7 @@ class AuthenticatedUser(GenericAPIView):
 
 
 class LoginView(KnoxLoginView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, format=None):
         serializer = LoginSerializer(data=request.data)
@@ -58,7 +60,7 @@ class LoginView(KnoxLoginView):
         user: User = serializer.validated_data["user"]
         if not user.is_active:
             return Response(
-                {"message": "User account is not activated"},
+                {"detail": "User account is not activated"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         login(request, user)
@@ -66,14 +68,14 @@ class LoginView(KnoxLoginView):
 
 
 class ResendActivationCodeView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     serializer_class = ResendActivationCodeSerializer
 
     def post(self, request):
         """
         Refresh the activation code and resends it to the user via email
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data["email"]
 
@@ -81,13 +83,13 @@ class ResendActivationCodeView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"message": "No such user"},
+                    {"detail": "No such user."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if user.is_active:
                 return Response(
-                    {"message": "User account already activated"},
+                    {"detail": "User account already activated."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -95,7 +97,7 @@ class ResendActivationCodeView(GenericAPIView):
             utils.send_activation_mail(user.email, activation_code)
 
             return Response(
-                {"message": "Activation token successfully resend"},
+                {"detail": "Activation token successfully resend."},
                 status=status.HTTP_200_OK,
             )
 
@@ -103,14 +105,14 @@ class ResendActivationCodeView(GenericAPIView):
 
 
 class AccountActivationView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     serializer_class = AcountActivationSerializer
 
     def post(self, request):
         """
         Activates user
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data["email"]
             activation_code = serializer.validated_data["activation_code"]
@@ -119,13 +121,13 @@ class AccountActivationView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"message": "No such user"},
+                    {"detail": "No such user."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if user.is_active:
                 return Response(
-                    {"message": "User account already activated"},
+                    {"detail": "User account already activated."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -135,7 +137,7 @@ class AccountActivationView(GenericAPIView):
                 )
             except UserActivationCode.DoesNotExist as no_activation_code:
                 return Response(
-                    {"message": "Activation code is invalid"},
+                    {"detail": "Activation code is invalid."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -145,13 +147,13 @@ class AccountActivationView(GenericAPIView):
 
             if user_activation_code.activation_code != hashed_activation_code:
                 return Response(
-                    {"message": "Activation code is invalid"},
+                    {"detail": "Activation code is invalid."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if user_activation_code.expire_date < timezone.now():
                 return Response(
-                    {"message": "Activation code is expired"},
+                    {"detail": "Activation code is expired."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -160,7 +162,7 @@ class AccountActivationView(GenericAPIView):
             user_activation_code.delete()
 
             return Response(
-                {"message": "Account successfully activated"},
+                {"detail": "Account successfully activated."},
                 status=status.HTTP_200_OK,
             )
 
@@ -168,14 +170,14 @@ class AccountActivationView(GenericAPIView):
 
 
 class SendRecoveryCodeView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     serializer_class = SendRecoveryCodeSerializer
 
     def post(self, request):
         """
         Creates or refresh the recovery code and sends it to the user via email
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data["email"]
 
@@ -183,13 +185,13 @@ class SendRecoveryCodeView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"message": "No such user"},
+                    {"detail": "No such user."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if not user.is_active:
                 return Response(
-                    {"message": "User account is not activated"},
+                    {"detail": "User account is not activated."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -197,7 +199,7 @@ class SendRecoveryCodeView(GenericAPIView):
             utils.send_recovery_account_mail(user.email, recovery_code)
 
             return Response(
-                {"message": "Recovery code successfully send"},
+                {"detail": "Recovery code successfully send."},
                 status=status.HTTP_200_OK,
             )
 
@@ -205,14 +207,14 @@ class SendRecoveryCodeView(GenericAPIView):
 
 
 class UpdatePasswordView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     serializer_class = UpdatePasswordSerializer
 
     def post(self, request):
         """
         Updates password
         """
-        serializer = self.serializer_class(
+        serializer = self.get_serializer(
             data=request.data, context={"request": request}
         )
         if serializer.is_valid():
@@ -228,14 +230,14 @@ class UpdatePasswordView(GenericAPIView):
                     user = User.objects.get(email=email)
                 except User.DoesNotExist as no_user:
                     return Response(
-                        {"message": "No such user"},
+                        {"detail": "No such user."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
                 try:
                     user_recovery_code = UserRecoveryCode.objects.get(user=user.id)
                 except UserRecoveryCode.DoesNotExist as no_recovery_code:
                     return Response(
-                        {"message": "Recovery code is invalid"},
+                        {"detail": "Recovery code is invalid."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
@@ -245,19 +247,19 @@ class UpdatePasswordView(GenericAPIView):
 
                 if user_recovery_code.recovery_code != hashed_recovery_code:
                     return Response(
-                        {"message": "Recovery code is invalid"},
+                        {"detail": "Recovery code is invalid."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
                 if user_recovery_code.expire_date < timezone.now():
                     return Response(
-                        {"message": "Activation code is expired"},
+                        {"detail": "Activation code is expired."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
             if not user.is_active:
                 return Response(
-                    {"message": "User account is not activated"},
+                    {"detail": "User account is not activated."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -268,7 +270,7 @@ class UpdatePasswordView(GenericAPIView):
                 user_recovery_code.delete()
 
             return Response(
-                {"message": "Password successfully updated"},
+                {"detail": "Password successfully updated"},
                 status=status.HTTP_200_OK,
             )
 

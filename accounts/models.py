@@ -9,6 +9,10 @@ __all__ = [
 ]
 
 
+def one_day_hence():
+    return timezone.now() + timezone.timedelta(days=1)
+
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password, **extra_fields):
         if not email:
@@ -25,7 +29,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True, max_length=254)
     is_active = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now())
+    date_joined = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "accounts_user"
@@ -43,9 +47,7 @@ class User(AbstractBaseUser):
 class UserActivationCode(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     activation_code = models.CharField(max_length=128)
-    expire_date = models.DateTimeField(
-        default=timezone.now() + timezone.timedelta(days=1)
-    )
+    expire_date = models.DateTimeField(default=one_day_hence)
 
     class Meta:
         db_table = "accounts_user_activation_code"
@@ -54,9 +56,7 @@ class UserActivationCode(models.Model):
 class UserRecoveryCode(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     recovery_code = models.CharField(max_length=128)
-    expire_date = models.DateTimeField(
-        default=timezone.now() + timezone.timedelta(hours=1)
-    )
+    expire_date = models.DateTimeField(default=one_day_hence)
 
     class Meta:
         db_table = "accounts_user_recovery_code"
