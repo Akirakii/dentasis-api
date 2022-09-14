@@ -37,7 +37,7 @@ class CariesDetectionView(CreateAPIView):
             denture_images = serializer.validated_data["denture_images"]
             response = {"denture_images": []}
             model = torch.hub.load(
-                "detections\\yolov7", "custom", "detections\\model.pt", source="local"
+                "detections/yolov7", "custom", "detections/model.pt", source="local"
             )
             model.eval()
             for image in denture_images:
