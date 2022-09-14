@@ -58,7 +58,6 @@ class DentalDiagnosisSerializer(ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-
         formatted_data = {
             "user": validated_data.get("user"),
             "is_favorite": validated_data.get("is_favorite"),
