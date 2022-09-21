@@ -9,4 +9,9 @@ urlpatterns = [
         views.DentalDiagnosisDetailView.as_view(),
         name="diagnosis-detail",
     ),
+    path(
+        "user-information/",
+        views.DentalDiagnosisUserInformationView.as_view(),
+        name="user-information",
+    ),
 ]
