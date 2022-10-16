@@ -13,7 +13,7 @@ from detections.serializers import CariesDetectionSerializer
 
 def image_to_byte_array(image: Image) -> bytes:
     byte_array = io.BytesIO()
-    image.save(byte_array, format="PNG")
+    image.save(byte_array, format="JPEG")
     byte_array = byte_array.getvalue()
     return byte_array
 
@@ -39,6 +39,7 @@ class CariesDetectionView(CreateAPIView):
             model = torch.hub.load(
                 "detections/yolov7", "custom", "detections/model.pt", source="local"
             )
+            model.conf=0.1
             model.eval()
             for image in denture_images:
                 img = Image.open(io.BytesIO(base64.b64decode(image)))
@@ -48,7 +49,7 @@ class CariesDetectionView(CreateAPIView):
                     image_to_byte_array(result_image)
                 ).decode("UTF-8")
                 cloudinary_response = uploader.upload(
-                    "data:image/png;base64," + encoded_result_image
+                    "data:image/jpeg;base64," + encoded_result_image
                 )
                 response["denture_images"].append(
                     {
