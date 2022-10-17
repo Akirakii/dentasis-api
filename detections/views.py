@@ -1,8 +1,9 @@
 import io
 import os
-import subprocess
+import cv2
 import shutil
-from glob import glob
+from roboflow import Roboflow
+import numpy as np
 
 import torch
 from cloudinary import uploader
@@ -15,12 +16,8 @@ from rest_framework.response import Response
 from detections.serializers import CariesDetectionSerializer
 
 
-def image_to_byte_array(image: Image) -> bytes:
-    byte_array = io.BytesIO()
-    image.save(byte_array, format="JPEG")
-    byte_array = byte_array.getvalue()
-    return byte_array
-
+def toImgPIL(imgOpenCV): 
+    return Image.fromarray(cv2.cvtColor(imgOpenCV, cv2.COLOR_BGR2RGB))
 
 class CariesDetectionView(CreateAPIView):
     """
@@ -39,43 +36,73 @@ class CariesDetectionView(CreateAPIView):
         )
         if serializer.is_valid():
             response = {"denture_images": []}
+            rf = Roboflow(api_key="mPC9t1ocnMZT3PGnsc9u")
+            project = rf.workspace("dentasis").project("dentasisv2")
+            model = project.version(2).model
             worker = os.getpid()
             denture_images = serializer.validated_data["denture_images"]
             try:
-                for indx, image in enumerate(denture_images):
+                for indx, imagebytes in enumerate(denture_images):
                     filename = f"/home/ubuntu/dentasis/detections/detect/{worker}/{indx}.png"
                     os.makedirs(os.path.dirname(filename), exist_ok=True)
                     with open(filename, "wb") as f:
-                        f.write(base64.b64decode(image))
+                        f.write(base64.b64decode(imagebytes))
                         f.close()
 
-                subprocess.run(["/home/ubuntu/dentasis/venv/bin/python", "/home/ubuntu/dentasis/detections/yolov7/detect.py", "--no-trace", "--save-txt", "--save-conf", "--conf-thres", "0.1", "--img-size", "640", "--weights", "/home/ubuntu/dentasis/detections/model.pt", "--source", f"/home/ubuntu/dentasis/detections/detect/{worker}", "--name", f"/home/ubuntu/dentasis/detections/runs/detect/{worker}"])
-
-                for detection in glob(f"/home/ubuntu/dentasis/detections/runs/detect/{worker}/*.*"): 
-                    pre, _ = os.path.splitext(detection)
-                    image = pre + ".jpeg"
-                    head, tail = os.path.split(detection)
-                    results = head + "/labels/" + tail.split(".")[0] + ".txt"
-                    old_image = Image.open(detection)
-                    new_image = old_image.convert("RGB")
-                    new_image.save(image, quality=50, optimize=True)
-
-                    with open(image, "rb") as f:
-                        encoded_image = base64.b64encode(f.read()).decode("UTF-8")
-                        cloudinary_response = uploader.upload(
-                            "data:image/jpeg;base64," + encoded_image
-                        )
-                        f.close()
-
+                    print(filename)
+                    prediction = model.predict(filename)
+                    results = prediction.json()["predictions"]
                     confs = []
-                    try:
-                        with open(results) as f:
-                            confs = [l.rsplit(" ")[-1].strip() for l in f]
-                            confs.reverse()
-                            confs = [f"{float(r):.2f}" for r in confs]
-                            f.close()
-                    except:
-                        pass
+                    image = cv2.imread(filename)
+                    stroke_color = (83, 12, 145)
+                    stroke = 1
+                    for result in results:
+                        conf = float(result["confidence"]) * 100
+                        conf = f"{conf:.2f}%"
+                        confs.append(conf)
+
+                        width = result["width"]
+                        height = result["height"]
+                        x = result["x"]
+                        y = result["y"]
+
+                        cv2.rectangle(
+                                image,
+                                (int(x - width / 2), int(y + height / 2)),
+                                (int(x + width / 2), int(y - height / 2)),
+                                stroke_color,
+                                stroke,
+                            )
+
+                        text_size = cv2.getTextSize(conf, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
+                        cv2.rectangle(
+                                image,
+                                (int(x - width / 2), int(y - height / 2)),
+                                (
+                                    int(x - width / 2 + text_size[0]),
+                                    int(y - height / 2 - text_size[1]),
+                                ),
+                                stroke_color,
+                                -1,
+                            )
+                        cv2.putText(
+                                image,
+                                conf,
+                                (int(x - width / 2), int(y - height / 2)),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.4,
+                                (255, 255, 255),
+                                thickness=1,
+                            )
+
+                    _, tail = os.path.split(filename)
+                    pre, _ = os.path.splitext(tail)
+                    detected_filename = f"/home/ubuntu/dentasis/detections/detected/{worker}/" + pre + ".jpeg"
+                    print(detected_filename)
+                    os.makedirs(os.path.dirname(detected_filename), exist_ok=True)
+                    PIL_image = toImgPIL(image)
+                    PIL_image.save(detected_filename, quality=70, optimize=True)
+                    confs.sort(reverse=True)
 
                     response["denture_images"].append(
                         {
@@ -84,8 +111,9 @@ class CariesDetectionView(CreateAPIView):
                         }
                     )
             finally:
-                shutil.rmtree(f"/home/ubuntu/dentasis/detections/detect/{worker}")
-                shutil.rmtree(f"/home/ubuntu/dentasis/detections/runs/detect/{worker}")
+                pass
+            #    shutil.rmtree(f"/home/ubuntu/dentasis/detections/detect/{worker}")
+            #    shutil.rmtree(f"/home/ubuntu/dentasis/detections/detected/{worker}")
             return Response(response, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
