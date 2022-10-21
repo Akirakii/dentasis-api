@@ -33,6 +33,8 @@ class User(AbstractBaseUser):
 
     class Meta:
         db_table = "accounts_user"
+        verbose_name = "usuario"
+        verbose_name_plural = "usuarios"
 
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"
@@ -51,6 +53,8 @@ class UserActivationCode(models.Model):
 
     class Meta:
         db_table = "accounts_user_activation_code"
+        verbose_name = "codigo de activacion"
+        verbose_name_plural = "codigos de activacion"
 
 
 class UserRecoveryCode(models.Model):
@@ -60,3 +64,5 @@ class UserRecoveryCode(models.Model):
 
     class Meta:
         db_table = "accounts_user_recovery_code"
+        verbose_name = "codigo de recuperacion"
+        verbose_name_plural = "codigos de recuperacion"

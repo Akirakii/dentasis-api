@@ -44,11 +44,11 @@ class DentalDiagnosisSerializer(ModelSerializer):
         if self.context["request"].method == "POST":
             if denture_images is None:
                 errors.setdefault("denture_images", []).append(
-                    "This field is required."
+                    "Este campo es obligatorio"
                 )
             if danger_percentage is None:
                 errors.setdefault("danger_percentage", []).append(
-                    "This field is required."
+                    "Este campo es obligatorio"
                 )
 
         if errors:

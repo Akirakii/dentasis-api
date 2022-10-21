@@ -38,7 +38,7 @@ class UserSerializer(ModelSerializer):
             errors.setdefault("password", []).extend(list(e.messages))
 
         if password1 != password2:
-            errors.setdefault("password", []).append("Passwords must match.")
+            errors.setdefault("password", []).append("Contraseñas deben de coincidir")
 
         if errors:
             raise ValidationError(errors)
@@ -73,10 +73,10 @@ class LoginSerializer(Serializer):
             )
 
             if not user:
-                msg = "Unable to log in with provided credentials."
+                msg = "No se pudo iniciar sesion con las credenciales proporcionadas"
                 raise serializers.ValidationError(msg, code="authorization")
         else:
-            msg = 'Must include "email" and "password".'
+            msg = 'Debe de incluir "Correo" y "Contraseña"'
             raise serializers.ValidationError(msg, code="authorization")
 
         data["user"] = user
@@ -113,12 +113,16 @@ class UpdatePasswordSerializer(Serializer):
 
         if user.id is None:
             if email is None:
-                errors.setdefault("email", []).append("This field is required.")
+                errors.setdefault("email", []).append("Este campo es obligatorio")
             if recovery_code is None:
-                errors.setdefault("recovery_code", []).append("This field is required.")
+                errors.setdefault("recovery_code", []).append(
+                    "Este campo es obligatorio"
+                )
 
         if password1 != password2:
-            errors.setdefault("password", []).append("Passwords must match.")
+            errors.setdefault("password", []).append(
+                "Las contraseñas deben de coincidir"
+            )
 
         if errors:
             raise ValidationError(errors)
