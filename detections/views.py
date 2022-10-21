@@ -1,4 +1,8 @@
 import io
+import os
+import subprocess
+import shutil
+from glob import glob
 
 import torch
 from cloudinary import uploader
@@ -13,7 +17,7 @@ from detections.serializers import CariesDetectionSerializer
 
 def image_to_byte_array(image: Image) -> bytes:
     byte_array = io.BytesIO()
-    image.save(byte_array, format="PNG")
+    image.save(byte_array, format="JPEG")
     byte_array = byte_array.getvalue()
     return byte_array
 
@@ -34,32 +38,54 @@ class CariesDetectionView(CreateAPIView):
             data=request.data, context={"request": request}
         )
         if serializer.is_valid():
-            denture_images = serializer.validated_data["denture_images"]
             response = {"denture_images": []}
-            model = torch.hub.load(
-                "detections/yolov7", "custom", "detections/model.pt", source="local"
-            )
-            model.eval()
-            for image in denture_images:
-                img = Image.open(io.BytesIO(base64.b64decode(image)))
-                results = model([img], size=640)
-                result_image = results.render()[0]
-                encoded_result_image = base64.b64encode(
-                    image_to_byte_array(result_image)
-                ).decode("UTF-8")
-                cloudinary_response = uploader.upload(
-                    "data:image/png;base64," + encoded_result_image
-                )
-                response["denture_images"].append(
-                    {
-                        "image_url": cloudinary_response["url"],
-                        "confidence": [
-                            f"{conf:.2f}"
-                            for *box, conf, cls in results.pred[0].tolist()
-                        ],
-                    }
-                )
+            worker = os.getpid()
+            denture_images = serializer.validated_data["denture_images"]
+            try:
+                for indx, image in enumerate(denture_images):
+                    filename = f"/home/ubuntu/dentasis/detections/detect/{worker}/{indx}.png"
+                    os.makedirs(os.path.dirname(filename), exist_ok=True)
+                    with open(filename, "wb") as f:
+                        f.write(base64.b64decode(image))
+                        f.close()
 
+                subprocess.run(["/home/ubuntu/dentasis/venv/bin/python", "/home/ubuntu/dentasis/detections/yolov7/detect.py", "--no-trace", "--save-txt", "--save-conf", "--conf-thres", "0.1", "--img-size", "640", "--weights", "/home/ubuntu/dentasis/detections/model.pt", "--source", f"/home/ubuntu/dentasis/detections/detect/{worker}", "--name", f"/home/ubuntu/dentasis/detections/runs/detect/{worker}"])
+
+                for detection in glob(f"/home/ubuntu/dentasis/detections/runs/detect/{worker}/*.*"): 
+                    pre, _ = os.path.splitext(detection)
+                    image = pre + ".jpeg"
+                    head, tail = os.path.split(detection)
+                    results = head + "/labels/" + tail.split(".")[0] + ".txt"
+                    old_image = Image.open(detection)
+                    new_image = old_image.convert("RGB")
+                    new_image.save(image, quality=50, optimize=True)
+
+                    with open(image, "rb") as f:
+                        encoded_image = base64.b64encode(f.read()).decode("UTF-8")
+                        cloudinary_response = uploader.upload(
+                            "data:image/jpeg;base64," + encoded_image
+                        )
+                        f.close()
+
+                    confs = []
+                    try:
+                        with open(results) as f:
+                            confs = [l.rsplit(" ")[-1].strip() for l in f]
+                            confs.reverse()
+                            confs = [f"{float(r):.2f}" for r in confs]
+                            f.close()
+                    except:
+                        pass
+
+                    response["denture_images"].append(
+                        {
+                            "image_url": cloudinary_response["url"],
+                            "confidence": confs,
+                        }
+                    )
+            finally:
+                shutil.rmtree(f"/home/ubuntu/dentasis/detections/detect/{worker}")
+                shutil.rmtree(f"/home/ubuntu/dentasis/detections/runs/detect/{worker}")
             return Response(response, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
