@@ -60,7 +60,7 @@ class LoginView(KnoxLoginView):
         user: User = serializer.validated_data["user"]
         if not user.is_active:
             return Response(
-                {"detail": "User account is not activated"},
+                {"detail": "Debe de activar su cuenta"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         login(request, user)
@@ -83,13 +83,13 @@ class ResendActivationCodeView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"detail": "No such user."},
+                    {"detail": "Usuario no existe"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if user.is_active:
                 return Response(
-                    {"detail": "User account already activated."},
+                    {"detail": "Usuario ya esta activado"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -97,7 +97,7 @@ class ResendActivationCodeView(GenericAPIView):
             utils.send_activation_mail(user.email, activation_code)
 
             return Response(
-                {"detail": "Activation token successfully resend."},
+                {"detail": "Codigo de activacion exitosamente reenviado"},
                 status=status.HTTP_200_OK,
             )
 
@@ -121,13 +121,13 @@ class AccountActivationView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"detail": "No such user."},
+                    {"detail": "Usuario no existe"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if user.is_active:
                 return Response(
-                    {"detail": "User account already activated."},
+                    {"detail": "Usuario ya esta activado"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -137,7 +137,7 @@ class AccountActivationView(GenericAPIView):
                 )
             except UserActivationCode.DoesNotExist as no_activation_code:
                 return Response(
-                    {"detail": "Activation code is invalid."},
+                    {"detail": "Codigo de activacion invalido"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -147,13 +147,13 @@ class AccountActivationView(GenericAPIView):
 
             if user_activation_code.activation_code != hashed_activation_code:
                 return Response(
-                    {"detail": "Activation code is invalid."},
+                    {"detail": "Codigo de activacion invalido"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if user_activation_code.expire_date < timezone.now():
                 return Response(
-                    {"detail": "Activation code is expired."},
+                    {"detail": "Codigo de activacion ya expiro"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -162,7 +162,7 @@ class AccountActivationView(GenericAPIView):
             user_activation_code.delete()
 
             return Response(
-                {"detail": "Account successfully activated."},
+                {"detail": "Usuario exitosamente activado"},
                 status=status.HTTP_200_OK,
             )
 
@@ -185,13 +185,13 @@ class SendRecoveryCodeView(GenericAPIView):
                 user: User = User.objects.get(email=email)
             except User.DoesNotExist as no_user:
                 return Response(
-                    {"detail": "No such user."},
+                    {"detail": "Usuario no existe"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if not user.is_active:
                 return Response(
-                    {"detail": "User account is not activated."},
+                    {"detail": "Debe de activar su cuenta"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -199,7 +199,7 @@ class SendRecoveryCodeView(GenericAPIView):
             utils.send_recovery_account_mail(user.email, recovery_code)
 
             return Response(
-                {"detail": "Recovery code successfully send."},
+                {"detail": "Codigo de recuperacion enviada exitosamente"},
                 status=status.HTTP_200_OK,
             )
 
@@ -230,14 +230,14 @@ class UpdatePasswordView(GenericAPIView):
                     user = User.objects.get(email=email)
                 except User.DoesNotExist as no_user:
                     return Response(
-                        {"detail": "No such user."},
+                        {"detail": "Usuario no existe."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
                 try:
                     user_recovery_code = UserRecoveryCode.objects.get(user=user.id)
                 except UserRecoveryCode.DoesNotExist as no_recovery_code:
                     return Response(
-                        {"detail": "Recovery code is invalid."},
+                        {"detail": "Codigo de recuperacion es invalido"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
@@ -247,19 +247,19 @@ class UpdatePasswordView(GenericAPIView):
 
                 if user_recovery_code.recovery_code != hashed_recovery_code:
                     return Response(
-                        {"detail": "Recovery code is invalid."},
+                        {"detail": "Codigo de recuperacion es invalido."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
                 if user_recovery_code.expire_date < timezone.now():
                     return Response(
-                        {"detail": "Activation code is expired."},
+                        {"detail": "Codigo de recuperacion ya expiro"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
             if not user.is_active:
                 return Response(
-                    {"detail": "User account is not activated."},
+                    {"detail": "Debe de activar su cuenta"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -270,7 +270,7 @@ class UpdatePasswordView(GenericAPIView):
                 user_recovery_code.delete()
 
             return Response(
-                {"detail": "Password successfully updated"},
+                {"detail": "Contraseña actualizada exitosamente"},
                 status=status.HTTP_200_OK,
             )
 

@@ -20,6 +20,8 @@ class DentalDiagnosis(models.Model):
 
     class Meta:
         db_table = "diagnosis_dental_diagnosis"
+        verbose_name = "diagnosis"
+        verbose_name_plural = "diagnosis"
 
 
 class DentalDiagnosisDentureImage(models.Model):
@@ -32,3 +34,5 @@ class DentalDiagnosisDentureImage(models.Model):
 
     class Meta:
         db_table = "diagnosis_dental_diagnosis_denture_image"
+        verbose_name = "imagen"
+        verbose_name_plural = "imagenes"

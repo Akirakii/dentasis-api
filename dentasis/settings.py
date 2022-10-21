@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
 ]
 
 ROOT_URLCONF = "dentasis.urls"
@@ -145,3 +146,7 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = os.environ.get("DENTASIS_EMAIL_USER")
 DEFAULT_FROM_EMAIL = os.environ.get("DENTASIS_EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("DENTASIS_EMAIL_PASSWORD")
+
+# Language Settings
+
+LANGUAGE_CODE = "es-es"
